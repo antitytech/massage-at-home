@@ -140,3 +140,5 @@ cython_debug/
 
 # Migration files
 migrations/
+
+.vscode/
