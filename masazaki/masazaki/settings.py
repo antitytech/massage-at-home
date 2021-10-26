@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 from datetime import timedelta
 from rest_framework.settings import api_settings
@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-vi^)_k#1f%t!1wk9xrid&sls5z2c_e2wk=#$5jv_03u-bfx@+5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['0.0.0.0']
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -41,12 +41,14 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
+    'django_email_verification',
     'knox',
     'auth_module',
     'database'
 ]
 
 MIDDLEWARE = [
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -61,7 +63,7 @@ ROOT_URLCONF = 'masazaki.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')], # **ADD THIS
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -69,42 +71,34 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.media',
+                'django.template.context_processors.static', # * (optional)
             ],
         },
     },
 ]
-
 WSGI_APPLICATION = 'masazaki.wsgi.application'
 
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'masazaki1',
+        'USER': 'mohsin',
+        'PASSWORD': 'mohsin123',
+        'HOST': '172.18.0.5',
+        'PORT': '5432',
     }
 }
-# DATABASES = {
-
-#     'default': {
-
-#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-
-#         'NAME': 'masazaki',
-
-#         'USER': 'mohsin',
-
-#         'PASSWORD': 'mohsin123',
-
-#         'HOST': '172.18.0.5',
-
-#         'PORT': '5432',
-
-#     }
-
-# }
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
@@ -152,7 +146,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'knox.auth.TokenAuthentication',
-    ]
+    ],
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+    )
 }
 
 
@@ -165,3 +162,60 @@ REST_KNOX = {
   'AUTO_REFRESH': False,
   'EXPIRY_DATETIME_FORMAT': '%H:%M:%S',
 }
+
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/1.11/howto/static-files/
+# PROJECT_ROOT   =   os.path.join(os.path.abspath(__file__))
+# STATIC_ROOT  =   os.path.join(PROJECT_ROOT, 'staticfiles')
+# STATIC_URL = '/static/'
+
+# Extra lookup directories for collectstatic to find static files
+# STATICFILES_DIRS = (
+#     os.path.join(PROJECT_ROOT, 'static'),
+# )
+
+#  Add configuration for static files storage using whitenoise
+# STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+AUTH_USER_MODEL = 'auth_module.CustomUser'
+
+
+def verified_callback(user):
+    user.is_email_verified = True
+    user.save()
+
+
+EMAIL_VERIFIED_CALLBACK = verified_callback
+EMAIL_FROM_ADDRESS = 'no-reply@massage-at-home.gr'
+EMAIL_MAIL_SUBJECT = 'Confirm your email'
+EMAIL_MAIL_HTML = 'mail_body.html'
+EMAIL_MAIL_PLAIN = 'mail_body.txt'
+EMAIL_TOKEN_LIFE = 60 * 60
+EMAIL_PAGE_TEMPLATE = 'confirm_template.html'
+EMAIL_PAGE_DOMAIN = 'http://127.0.0.1:8000.com/'
+
+# For Django Email Backend
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'massage-at-home.gr'
+EMAIL_PORT = 465
+EMAIL_HOST_USER = 'no-reply@massage-at-home.gr'
+EMAIL_HOST_PASSWORD = '9R9c~r4g'  # os.environ['password_key'] suggested
+EMAIL_USE_TLS = True
+
+# APPEND_SLASH=False
+
+TEMPLATE_DIRS = (
+    os.path.join(os.path.dirname(__file__), 'templates'),
+)
+
+TEMPLATE_CONTEXT_PROCESSORS = (
+    "django.contrib.auth.context_processors.auth",
+    "django.core.context_processors.debug",
+    "django.core.context_processors.i18n",
+    "django.core.context_processors.media",
+    "django.core.context_processors.static",
+    "django.core.context_processors.tz",
+    "django.contrib.messages.context_processors.messages",
+    'django.core.context_processors.request',
+)
